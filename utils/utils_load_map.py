@@ -5,7 +5,7 @@ import numpy as np
 def load_map_txt(map_file_name):
     """
     :param map_file_name:
-    :return: 返回列表x
+    :return: list of red and blue cones
     """
     cone_r_list = []
     cone_b_list = []
@@ -20,8 +20,6 @@ def load_map_txt(map_file_name):
                 cone_b_list.append([float(xx), float(yy)])
     cones_r_np = np.array(cone_r_list)
     cones_b_np = np.array(cone_b_list)
-    # print(cones_np)
-    print(cones_r_np)
     return cones_r_np, cones_b_np
 
 

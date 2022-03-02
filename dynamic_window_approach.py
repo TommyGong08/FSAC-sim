@@ -11,20 +11,20 @@ from enum import Enum
 
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import utils_load_map
-from perception import simple_perception
+
 show_animation = True
 
 
 def dwa_control(x, config, goal, ob):
     """
     Dynamic Window Approach control
+    x: 当前位置，方向角，速度，角速度
     """
-    dw = calc_dynamic_window(x, config)
+    dw = calc_dynamic_window(x, config)  # 计算动态窗口
 
-    u, trajectory = calc_control_and_trajectory(x, dw, config, goal, ob)
+    best_w, trajectory = calc_control_and_trajectory(x, dw, config, goal, ob)
 
-    return u, trajectory
+    return best_w, trajectory
 
 
 class RobotType(Enum):
@@ -39,7 +39,6 @@ class Config:
 
     def __init__(self):
         # robot parameter
-        """
         self.max_speed = 1.0  # [m/s]
         self.min_speed = -0.5  # [m/s]
         self.max_yaw_rate = 40.0 * math.pi / 180.0  # [rad/s]
@@ -48,12 +47,11 @@ class Config:
         self.v_resolution = 0.01  # [m/s]
         self.yaw_rate_resolution = 0.1 * math.pi / 180.0  # [rad/s]
         self.dt = 0.1  # [s] Time tick for motion prediction
-        self.predict_time = 3.0  # [s]
+        self.predict_time = 3.0  # [s]  # 预测3s后的路径
         self.to_goal_cost_gain = 0.15
         self.speed_cost_gain = 1.0
         self.obstacle_cost_gain = 1.0
         self.robot_stuck_flag_cons = 0.001  # constant to prevent robot stucked
-        """
         self.robot_type = RobotType.circle
 
         # if robot_type == RobotType.circle
@@ -64,8 +62,22 @@ class Config:
         self.robot_width = 0.5  # [m] for collision check
         self.robot_length = 1.2  # [m] for collision check
         # obstacles [x(m) y(m), ....]
-        self.map_file_name = "map/map.txt"
-        self.ob_r, self.ob_b = utils_load_map.load_map_txt(self.map_file_name)
+        self.ob = np.array([[-1, -1],
+                            [0, 2],
+                            [4.0, 2.0],
+                            [5.0, 4.0],
+                            [5.0, 5.0],
+                            [5.0, 6.0],
+                            [5.0, 9.0],
+                            [8.0, 9.0],
+                            [7.0, 9.0],
+                            [8.0, 10.0],
+                            [9.0, 11.0],
+                            [12.0, 13.0],
+                            [12.0, 12.0],
+                            [15.0, 15.0],
+                            [13.0, 13.0]
+                            ])
 
     @property
     def robot_type(self):
@@ -79,19 +91,19 @@ class Config:
 
 
 config = Config()
-perception_module = simple_perception.Perception()
 
 
 def motion(x, u, dt):
     """
     motion model
+    自行车模型
+    u: 速度窗口和加速度窗口中的每一个值
     """
-
-    x[2] += u[1] * dt
-    x[0] += u[0] * math.cos(x[2]) * dt
-    x[1] += u[0] * math.sin(x[2]) * dt
-    x[3] = u[0]
-    x[4] = u[1]
+    x[2] += u[1] * dt  # yaw (rad)
+    x[0] += u[0] * math.cos(x[2]) * dt  # x(m)
+    x[1] += u[0] * math.sin(x[2]) * dt  # y(m)
+    x[3] = u[0]  # v (m/s)
+    x[4] = u[1]  # yaw_rate (rad/s)
 
     return x
 
@@ -121,15 +133,16 @@ def calc_dynamic_window(x, config):
 def predict_trajectory(x_init, v, y, config):
     """
     predict trajectory with an input
+    v: 速度窗口
+    y: 角速度窗口
     """
-
     x = np.array(x_init)
     trajectory = np.array(x)
     time = 0
     while time <= config.predict_time:
         x = motion(x, [v, y], config.dt)
         trajectory = np.vstack((trajectory, x))
-        time += config.dt
+        time += config.dt  # 相当于预测30步
 
     return trajectory
 
@@ -137,12 +150,16 @@ def predict_trajectory(x_init, v, y, config):
 def calc_control_and_trajectory(x, dw, config, goal, ob):
     """
     calculation final input with dynamic window
+    x: 当前车辆的状态
+    dw:动态窗口 [v_min, v_max, yaw_rate_min, yaw_rate_max]
+    config:车辆的配置
+    goal: 终点目标
+    ob: 障碍物
     """
-
     x_init = x[:]
     min_cost = float("inf")
     best_u = [0.0, 0.0]
-    best_trajectory = np.array([x])
+    best_trajectory = np.array([x])  # 先把当前的点加进best_trajectory
 
     # evaluate all trajectory with sampled input in dynamic window
     for v in np.arange(dw[0], dw[1], config.v_resolution):
@@ -159,7 +176,7 @@ def calc_control_and_trajectory(x, dw, config, goal, ob):
             # search minimum trajectory
             if min_cost >= final_cost:
                 min_cost = final_cost
-                best_u = [v, y]
+                best_u = [v, y]  # 最佳的动态窗口
                 best_trajectory = trajectory
                 if abs(best_u[0]) < config.robot_stuck_flag_cons \
                         and abs(x[3]) < config.robot_stuck_flag_cons:
@@ -248,44 +265,21 @@ def plot_robot(x, y, yaw, config):  # pragma: no cover
 
 
 def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
-    print(__file__ + " start!!!")
+    print(__file__ + " start!!")
     # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
-    x = np.array([0.0, 0.0, 0, 0.0, 0.0])
+    x = np.array([0.0, 0.0, math.pi / 8.0, 0.0, 0.0])
     # goal position [x(m), y(m)]
-    # goal = np.array([gx, gy])
+    goal = np.array([gx, gy])
 
     # input [forward speed, yaw_rate]
 
     config.robot_type = robot_type
     trajectory = np.array(x)
-    ob_r = config.ob_r
-    ob_b = config.ob_b
+    ob = config.ob  # 设置障碍
     while True:
-
-        # perception
-        car_perception = perception_module
-        detected_red_cones, detected_blue_cones = car_perception.find_cones(x, ob_r, ob_b)
-
-        # planning
-
-        # control
-
-        # plot
-        plt.plot(ob_r[:, 0], ob_r[:, 1], "or")
-        plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
-        plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "og")
-        plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "og")
-        plot_robot(x[0], x[1], x[2], config)
-        plt.axis("equal")
-        plt.grid(True)
-        plt.pause(0.001)
-        plt.show()
-    """
-    while True:
-        # u, predicted_trajectory = dwa_control(x, config, goal, ob)
-        # x = motion(x, u, config.dt)  # simulate robot
-        # trajectory = np.vstack((trajectory, x))  # store state history
-
+        best_w, predicted_trajectory = dwa_control(x, config, goal, ob)  # 计算动态窗口
+        x = motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
+        trajectory = np.vstack((trajectory, x))  # store state history
         if show_animation:
             plt.cla()
             # for stopping simulation with the esc key.
@@ -312,9 +306,10 @@ def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
     if show_animation:
         plt.plot(trajectory[:, 0], trajectory[:, 1], "-r")
         plt.pause(0.0001)
+
     plt.show()
-    """
 
 
 if __name__ == '__main__':
     main(robot_type=RobotType.rectangle)
+    # main(robot_type=RobotType.circle)
