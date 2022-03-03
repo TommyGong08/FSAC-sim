@@ -8,12 +8,16 @@ author: Atsushi Sakai (@Atsushi_twi), Göktuğ Karakaşlı
 
 import math
 from enum import Enum
-
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import utils_load_map
-from perception import simple_perception
+from config import config
+from perception import perceptor
+from plan import planner
 show_animation = True
+
+config = config.Config()
+perception_module = perceptor.Perception()
+planning_module = planner.Plan()
 
 
 def dwa_control(x, config, goal, ob):
@@ -26,60 +30,6 @@ def dwa_control(x, config, goal, ob):
 
     return u, trajectory
 
-
-class RobotType(Enum):
-    circle = 0
-    rectangle = 1
-
-
-class Config:
-    """
-    simulation parameter class
-    """
-
-    def __init__(self):
-        # robot parameter
-        """
-        self.max_speed = 1.0  # [m/s]
-        self.min_speed = -0.5  # [m/s]
-        self.max_yaw_rate = 40.0 * math.pi / 180.0  # [rad/s]
-        self.max_accel = 0.2  # [m/ss]
-        self.max_delta_yaw_rate = 40.0 * math.pi / 180.0  # [rad/ss]
-        self.v_resolution = 0.01  # [m/s]
-        self.yaw_rate_resolution = 0.1 * math.pi / 180.0  # [rad/s]
-        self.dt = 0.1  # [s] Time tick for motion prediction
-        self.predict_time = 3.0  # [s]
-        self.to_goal_cost_gain = 0.15
-        self.speed_cost_gain = 1.0
-        self.obstacle_cost_gain = 1.0
-        self.robot_stuck_flag_cons = 0.001  # constant to prevent robot stucked
-        """
-        self.robot_type = RobotType.circle
-
-        # if robot_type == RobotType.circle
-        # Also used to check if goal is reached in both types
-        self.robot_radius = 1.0  # [m] for collision check
-
-        # if robot_type == RobotType.rectangle
-        self.robot_width = 0.5  # [m] for collision check
-        self.robot_length = 1.2  # [m] for collision check
-        # obstacles [x(m) y(m), ....]
-        self.map_file_name = "map/map.txt"
-        self.ob_r, self.ob_b = utils_load_map.load_map_txt(self.map_file_name)
-
-    @property
-    def robot_type(self):
-        return self._robot_type
-
-    @robot_type.setter
-    def robot_type(self, value):
-        if not isinstance(value, RobotType):
-            raise TypeError("robot_type must be an instance of RobotType")
-        self._robot_type = value
-
-
-config = Config()
-perception_module = simple_perception.Perception()
 
 
 def motion(x, u, dt):
@@ -181,24 +131,21 @@ def calc_obstacle_cost(trajectory, ob, config):
     dy = trajectory[:, 1] - oy[:, None]
     r = np.hypot(dx, dy)
 
-    if config.robot_type == RobotType.rectangle:
-        yaw = trajectory[:, 2]
-        rot = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
-        rot = np.transpose(rot, [2, 0, 1])
-        local_ob = ob[:, None] - trajectory[:, 0:2]
-        local_ob = local_ob.reshape(-1, local_ob.shape[-1])
-        local_ob = np.array([local_ob @ x for x in rot])
-        local_ob = local_ob.reshape(-1, local_ob.shape[-1])
-        upper_check = local_ob[:, 0] <= config.robot_length / 2
-        right_check = local_ob[:, 1] <= config.robot_width / 2
-        bottom_check = local_ob[:, 0] >= -config.robot_length / 2
-        left_check = local_ob[:, 1] >= -config.robot_width / 2
-        if (np.logical_and(np.logical_and(upper_check, right_check),
-                           np.logical_and(bottom_check, left_check))).any():
-            return float("Inf")
-    elif config.robot_type == RobotType.circle:
-        if np.array(r <= config.robot_radius).any():
-            return float("Inf")
+    yaw = trajectory[:, 2]
+    rot = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
+    rot = np.transpose(rot, [2, 0, 1])
+    local_ob = ob[:, None] - trajectory[:, 0:2]
+    local_ob = local_ob.reshape(-1, local_ob.shape[-1])
+    local_ob = np.array([local_ob @ x for x in rot])
+    local_ob = local_ob.reshape(-1, local_ob.shape[-1])
+    upper_check = local_ob[:, 0] <= config.robot_length / 2
+    right_check = local_ob[:, 1] <= config.robot_width / 2
+    bottom_check = local_ob[:, 0] >= -config.robot_length / 2
+    left_check = local_ob[:, 1] >= -config.robot_width / 2
+    if (np.logical_and(np.logical_and(upper_check, right_check),
+                       np.logical_and(bottom_check, left_check))).any():
+        return float("Inf")
+
 
     min_r = np.min(r)
     return 1.0 / min_r  # OK
@@ -225,29 +172,22 @@ def plot_arrow(x, y, yaw, length=0.5, width=0.1):  # pragma: no cover
 
 
 def plot_robot(x, y, yaw, config):  # pragma: no cover
-    if config.robot_type == RobotType.rectangle:
-        outline = np.array([[-config.robot_length / 2, config.robot_length / 2,
-                             (config.robot_length / 2), -config.robot_length / 2,
-                             -config.robot_length / 2],
-                            [config.robot_width / 2, config.robot_width / 2,
-                             - config.robot_width / 2, -config.robot_width / 2,
-                             config.robot_width / 2]])
-        Rot1 = np.array([[math.cos(yaw), math.sin(yaw)],
-                         [-math.sin(yaw), math.cos(yaw)]])
-        outline = (outline.T.dot(Rot1)).T
-        outline[0, :] += x
-        outline[1, :] += y
-        plt.plot(np.array(outline[0, :]).flatten(),
-                 np.array(outline[1, :]).flatten(), "-k")
-    elif config.robot_type == RobotType.circle:
-        circle = plt.Circle((x, y), config.robot_radius, color="b")
-        plt.gcf().gca().add_artist(circle)
-        out_x, out_y = (np.array([x, y]) +
-                        np.array([np.cos(yaw), np.sin(yaw)]) * config.robot_radius)
-        plt.plot([x, out_x], [y, out_y], "-k")
+    outline = np.array([[-config.robot_length / 2, config.robot_length / 2,
+                         (config.robot_length / 2), -config.robot_length / 2,
+                         -config.robot_length / 2],
+                        [config.robot_width / 2, config.robot_width / 2,
+                         - config.robot_width / 2, -config.robot_width / 2,
+                         config.robot_width / 2]])
+    Rot1 = np.array([[math.cos(yaw), math.sin(yaw)],
+                     [-math.sin(yaw), math.cos(yaw)]])
+    outline = (outline.T.dot(Rot1)).T
+    outline[0, :] += x
+    outline[1, :] += y
+    plt.plot(np.array(outline[0, :]).flatten(),
+             np.array(outline[1, :]).flatten(), "-k")
 
 
-def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
+def main(gx=10.0, gy=10.0):
     print(__file__ + " start!!!")
     # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
     x = np.array([0.0, 0.0, 0, 0.0, 0.0])
@@ -256,30 +196,47 @@ def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
 
     # input [forward speed, yaw_rate]
 
-    config.robot_type = robot_type
     trajectory = np.array(x)
     ob_r = config.ob_r
     ob_b = config.ob_b
     while True:
 
         # perception
-        car_perception = perception_module
-        detected_red_cones, detected_blue_cones = car_perception.find_cones(x, ob_r, ob_b)
+        """
+        detect cones in front of the race car
+        """
+        detected_red_cones, detected_blue_cones = perception_module.detect_cones(x, ob_r, ob_b)
 
         # planning
+        """
+        input: location of red and blue cones in front of the racecar
+        output: the middle line or the best suitable trajectory 
+        """
+        mid_trajectory = planner.cal_mid_points(detected_red_cones, detected_blue_cones)
 
         # control
+        """
+        input:mid or best trajectory
+        output: [x, y, yaw, v, yaw_rate]
+        """
+        goal = planner.cal_goal(x, mid_trajectory)
+        ob = np.vstack((detected_red_cones, detected_blue_cones))
+        best_w, predicted_trajectory = dwa_control(x, config, goal, ob)  # 计算动态窗口
+        x = motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
+        trajectory = np.vstack((trajectory, x))  # store state history
 
         # plot
+        plt.cla()
         plt.plot(ob_r[:, 0], ob_r[:, 1], "or")
         plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
         plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "og")
         plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "og")
-        plot_robot(x[0], x[1], x[2], config)
+        plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], "o")
+        plot_robot(x[0], x[1], x[2], config)  # draw racecar
         plt.axis("equal")
         plt.grid(True)
-        plt.pause(0.001)
-        plt.show()
+        plt.pause(0.0001)
+    plt.show()
     """
     while True:
         # u, predicted_trajectory = dwa_control(x, config, goal, ob)
@@ -317,4 +274,4 @@ def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
 
 
 if __name__ == '__main__':
-    main(robot_type=RobotType.rectangle)
+    main()
