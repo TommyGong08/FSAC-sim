@@ -229,8 +229,8 @@ def main(gx=10.0, gy=10.0):
         plt.cla()
         plt.plot(ob_r[:, 0], ob_r[:, 1], "or")
         plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
-        plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "og")
-        plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "og")
+        plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "-g")
+        plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "-g")
         plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], "o")
         plot_robot(x[0], x[1], x[2], config)  # draw racecar
         plt.axis("equal")
