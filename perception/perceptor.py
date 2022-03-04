@@ -11,7 +11,7 @@ class Perception:
         self.max_distance = 15  # 最大感知距离,欧式距离
         self.red_cone = []  # 记录橙色锥桶
         self.blue_cone = []  # 记录蓝色锥桶
-        self.max_angle = math.pi / 4  # 最大可观测与yaw的夹角
+        self.max_angle = math.pi / 6  # 最大可观测与yaw的夹角
 
     def detect_cones(self, x, red_cones, blue_cones):
         v = np.array([math.cos(x[2]), math.sin(x[2])])  # yaw单位向量
