@@ -31,7 +31,6 @@ def dwa_control(x, config, goal, ob):
     return u, trajectory
 
 
-
 def motion(x, u, dt):
     """
     motion model
@@ -190,7 +189,7 @@ def plot_robot(x, y, yaw, config):  # pragma: no cover
 def main(gx=10.0, gy=10.0):
     print(__file__ + " start!!!")
     # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
-    x = np.array([0.0, 0.0, 0, 0.0, 0.0])
+    x = np.array([20.0, 0.0, 0, 0.0, 0.0])
     # goal position [x(m), y(m)]
     # goal = np.array([gx, gy])
 
@@ -209,10 +208,13 @@ def main(gx=10.0, gy=10.0):
 
         # planning
         """
-        input: location of red and blue cones in front of the racecar
+        input: location of red and blue cones in front of the race car
         output: the middle line or the best suitable trajectory 
         """
         mid_trajectory = planner.cal_mid_points(detected_red_cones, detected_blue_cones)
+        # print("detected red : ", len(detected_red_cones))
+        # print("detected blue : ", len(detected_blue_cones))
+        # print(len(mid_trajectory))
 
         # control
         """

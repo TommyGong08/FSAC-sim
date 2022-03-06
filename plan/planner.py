@@ -19,7 +19,7 @@ def cal_goal(x, mid_trajectory):
     """
     if len(mid_trajectory) == 0:
         print("no mid trajectory")
-    dist = 999999
+    dist = 9999
     for point in mid_trajectory:
         temp_dist = math.sqrt(pow(point[0]-x[0], 2) + pow(point[1]-x[1], 2))
         if temp_dist < dist:
