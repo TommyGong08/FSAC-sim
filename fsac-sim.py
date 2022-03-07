@@ -47,7 +47,7 @@ def plot_robot(x, y, yaw, config):  # pragma: no cover
 def main(gx=10.0, gy=10.0):
     print(__file__ + " start!!!")
     # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
-    x = np.array([20.0, 0.0, 0, 0.0, 0.0])
+    x = np.array([18.0, 0.0, 0, 0.0, 0.0])
     # goal position [x(m), y(m)]
     # goal = np.array([gx, gy])
 
@@ -78,7 +78,8 @@ def main(gx=10.0, gy=10.0):
         input:mid or best trajectory
         output: [x, y, yaw, v, yaw_rate]
         """
-        goal, goal_yaw = planner.cal_goal(x, mid_trajectory)
+        # goal, goal_yaw = planner.cal_farthest_goal(x, mid_trajectory)
+        goal, goal_yaw = planner.cal_nearest_goal(x, mid_trajectory)
 
         if planning_module.mode == 0:   # 动态窗口法
             ob = np.vstack((detected_red_cones, detected_blue_cones))
@@ -89,18 +90,18 @@ def main(gx=10.0, gy=10.0):
         elif planning_module.mode == 1:
             # 计算出时间、空间、速度、加速度和加加速度的信息
             # 最大加速度与加加速度
-            max_accel = 1.0  # max accel [m/ss]
-            max_jerk = 0.5  # max jerk [m/sss]
+            max_accel = 0.5  # max accel [m/ss]
+            max_jerk = 0.3  # max jerk [m/sss]
             # 时间间隔0.1
             dt = 0.1  # time tick [s]
             sa = 0.1
             ga = 0.1
-            goal_v = 2.0  # [m/s]
-            x, j = quintic_polynomials_planner.quintic_polynomials_planner(
+            goal_v = 1.0  # [m/s]
+            x, j, predicted_trajectory = quintic_polynomials_planner.quintic_polynomials_planner(
                 x[0], x[1], x[2], x[3], sa, goal[0], goal[1], goal_yaw, goal_v, ga, max_accel, max_jerk, dt)
         # plot
         plt.cla()
-        # plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-g")
+        plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-r")
         plt.plot(ob_r[:, 0], ob_r[:, 1], "or")
         plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
         plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "-g")

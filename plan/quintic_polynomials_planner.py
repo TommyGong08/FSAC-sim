@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # parameter
-MAX_T = 4.0  # maximum time to the goal [s]
-MIN_T = 2.0  # minimum time to the goal[s]
+MAX_T = 1.0  # maximum time to the goal [s]
+MIN_T = 0.8  # minimum time to the goal[s]
 
 show_animation = True
 
@@ -113,6 +113,7 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
 
         time, rx, ry, ryaw, rv, ra, rj = [], [], [], [], [], [], []
 
+        predict_trajectory = np.array([sx, sy])
         for t in np.arange(0.0, T + dt, dt):
             time.append(t)
             rx.append(xqp.calc_point(t))
@@ -138,12 +139,13 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
             if len(ra) >= 2 and ra[-1] - ra[-2] < 0.0:
                 j *= -1
             rj.append(j)
-
+            x = np.array([xqp.calc_point(t), yqp.calc_point(t)])
+            predict_trajectory = np.vstack((predict_trajectory, x))
         if max([abs(i) for i in ra]) <= max_accel and max([abs(i) for i in rj]) <= max_jerk:
             print("find path!!")
             break
-    x = np.array([rx[0], ry[0], ryaw[0], rv[0], ra[0]])
-    return x, rj
+    x = np.array([rx[1], ry[1], ryaw[1], rv[1], ra[1]])
+    return x, rj, predict_trajectory
 
 
 def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):  # pragma: no cover
