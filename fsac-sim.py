@@ -145,7 +145,6 @@ def calc_obstacle_cost(trajectory, ob, config):
                        np.logical_and(bottom_check, left_check))).any():
         return float("Inf")
 
-
     min_r = np.min(r)
     return 1.0 / min_r  # OK
 
@@ -223,56 +222,26 @@ def main(gx=10.0, gy=10.0):
         """
         goal = planner.cal_goal(x, mid_trajectory)
         ob = np.vstack((detected_red_cones, detected_blue_cones))
-        best_w, predicted_trajectory = dwa_control(x, config, goal, ob)  # 计算动态窗口
-        x = motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
-        trajectory = np.vstack((trajectory, x))  # store state history
+        if config.control_mode == 0:   # 动态窗口法
+            best_w, predicted_trajectory = dwa_control(x, config, goal, ob)  # 计算动态窗口
+            x = motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
+            # trajectory = np.vstack((trajectory, x))  # store state history
+        # elif config.control_mode == 1:
+
 
         # plot
         plt.cla()
+        plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-g")
         plt.plot(ob_r[:, 0], ob_r[:, 1], "or")
         plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
         plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "-g")
         plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "-g")
-        plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], "o")
+        plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], ".")
         plot_robot(x[0], x[1], x[2], config)  # draw racecar
         plt.axis("equal")
         plt.grid(True)
         plt.pause(0.0001)
     plt.show()
-    """
-    while True:
-        # u, predicted_trajectory = dwa_control(x, config, goal, ob)
-        # x = motion(x, u, config.dt)  # simulate robot
-        # trajectory = np.vstack((trajectory, x))  # store state history
-
-        if show_animation:
-            plt.cla()
-            # for stopping simulation with the esc key.
-            plt.gcf().canvas.mpl_connect(
-                'key_release_event',
-                lambda event: [exit(0) if event.key == 'escape' else None])
-            plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-g")
-            plt.plot(x[0], x[1], "xr")
-            plt.plot(goal[0], goal[1], "xb")
-            plt.plot(ob[:, 0], ob[:, 1], "ok")
-            plot_robot(x[0], x[1], x[2], config)
-            plot_arrow(x[0], x[1], x[2])
-            plt.axis("equal")
-            plt.grid(True)
-            plt.pause(0.0001)
-
-        # check reaching goal
-        dist_to_goal = math.hypot(x[0] - goal[0], x[1] - goal[1])
-        if dist_to_goal <= config.robot_radius:
-            print("Goal!!")
-            break
-
-    print("Done")
-    if show_animation:
-        plt.plot(trajectory[:, 0], trajectory[:, 1], "-r")
-        plt.pause(0.0001)
-    plt.show()
-    """
 
 
 if __name__ == '__main__':
