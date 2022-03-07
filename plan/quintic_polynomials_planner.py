@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # parameter
-MAX_T = 100.0  # maximum time to the goal [s]
-MIN_T = 5.0  # minimum time to the goal[s]
+MAX_T = 4.0  # maximum time to the goal [s]
+MIN_T = 2.0  # minimum time to the goal[s]
 
 show_animation = True
 
@@ -142,25 +142,8 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
         if max([abs(i) for i in ra]) <= max_accel and max([abs(i) for i in rj]) <= max_jerk:
             print("find path!!")
             break
-    if show_animation:  # pragma: no cover
-        for i, _ in enumerate(time):
-            plt.cla()
-            # for stopping simulation with the esc key.
-            plt.gcf().canvas.mpl_connect('key_release_event',
-                                         lambda event: [exit(0) if event.key == 'escape' else None])
-            plt.grid(True)
-            plt.axis("equal")
-            plot_arrow(sx, sy, syaw)
-            plot_arrow(gx, gy, gyaw)
-            plot_arrow(rx[i], ry[i], ryaw[i])
-            plt.title("Time[s]:" + str(time[i])[0:4] +
-                      " v[m/s]:" + str(rv[i])[0:4] +
-                      " a[m/ss]:" + str(ra[i])[0:4] +
-                      " jerk[m/sss]:" + str(rj[i])[0:4],
-                      )
-            plt.pause(0.001)
-
-    return time, rx, ry, ryaw, rv, ra, rj
+    x = np.array([rx[0], ry[0], ryaw[0], rv[0], ra[0]])
+    return x, rj
 
 
 def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):  # pragma: no cover

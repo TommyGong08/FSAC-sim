@@ -13,7 +13,8 @@ import numpy as np
 from config import config
 from perception import perceptor
 from plan import planner
-from plan import dynamic_windows
+from plan import dynamic_windows_planner
+from plan import quintic_polynomials_planner
 show_animation = True
 
 config = config.Config()
@@ -56,7 +57,6 @@ def main(gx=10.0, gy=10.0):
     ob_r = config.ob_r
     ob_b = config.ob_b
     while True:
-
         # perception
         """
         detect cones in front of the race car
@@ -68,7 +68,7 @@ def main(gx=10.0, gy=10.0):
         input: location of red and blue cones in front of the race car
         output: the middle line or the best suitable trajectory 
         """
-        mid_trajectory = dynamic_windows.cal_mid_points(detected_red_cones, detected_blue_cones)
+        mid_trajectory = dynamic_windows_planner.cal_mid_points(detected_red_cones, detected_blue_cones)
         # print("detected red : ", len(detected_red_cones))
         # print("detected blue : ", len(detected_blue_cones))
         # print(len(mid_trajectory))
@@ -78,24 +78,35 @@ def main(gx=10.0, gy=10.0):
         input:mid or best trajectory
         output: [x, y, yaw, v, yaw_rate]
         """
-        goal = dynamic_windows.cal_goal(x, mid_trajectory)
-        ob = np.vstack((detected_red_cones, detected_blue_cones))
+        goal, goal_yaw = planner.cal_goal(x, mid_trajectory)
+
         if planning_module.mode == 0:   # 动态窗口法
-            best_w, predicted_trajectory = dynamic_windows.dwa_control(x, config, goal, ob)  # 计算动态窗口
-            x = dynamic_windows.motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
+            ob = np.vstack((detected_red_cones, detected_blue_cones))
+            best_w, predicted_trajectory = dynamic_windows_planner.dwa_control(x, config, goal, ob)  # 计算动态窗口
+            x = dynamic_windows_planner.motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
             # trajectory = np.vstack((trajectory, x))  # store state history
-        # elif planning_module.mode == 1:
 
-
+        elif planning_module.mode == 1:
+            # 计算出时间、空间、速度、加速度和加加速度的信息
+            # 最大加速度与加加速度
+            max_accel = 1.0  # max accel [m/ss]
+            max_jerk = 0.5  # max jerk [m/sss]
+            # 时间间隔0.1
+            dt = 0.1  # time tick [s]
+            sa = 0.1
+            ga = 0.1
+            goal_v = 2.0  # [m/s]
+            x, j = quintic_polynomials_planner.quintic_polynomials_planner(
+                x[0], x[1], x[2], x[3], sa, goal[0], goal[1], goal_yaw, goal_v, ga, max_accel, max_jerk, dt)
         # plot
         plt.cla()
-        plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-g")
+        # plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-g")
         plt.plot(ob_r[:, 0], ob_r[:, 1], "or")
         plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
         plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "-g")
         plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "-g")
         plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], ".")
-        plot_robot(x[0], x[1], x[2], config)  # draw racecar
+        plot_robot(x[0], x[1], x[2], config)  # draw race car
         plt.axis("equal")
         plt.grid(True)
         plt.pause(0.0001)
