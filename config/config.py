@@ -31,9 +31,4 @@ class Config:
         self.map_file_name = "map/map.txt"
         self.ob_r, self.ob_b = utils_load_map.load_map_txt(self.map_file_name)
 
-        self.control_mode = 0
-        """
-        control_mode = 0 动态窗口
-        control_mode = 1 五次曲线拟合
-        """
 
