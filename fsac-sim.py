@@ -53,7 +53,6 @@ def main(gx=10.0, gy=10.0):
 
     # input [forward speed, yaw_rate]
 
-    trajectory = np.array(x)
     ob_r = config.ob_r
     ob_b = config.ob_b
     while True:

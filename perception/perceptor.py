@@ -22,7 +22,7 @@ class Perception:
         self.max_distance = 15  # 最大感知距离,欧式距离
         self.red_cone = []  # 记录橙色锥桶
         self.blue_cone = []  # 记录蓝色锥桶
-        self.max_angle = math.pi / 3  # 最大可观测与yaw的夹角
+        self.max_angle = math.pi / (180 / 80)  # 最大可观测与yaw的夹角
         self.dist_between_cones = 6
         self.x = None
 
