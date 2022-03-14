@@ -47,8 +47,8 @@ class Plan:
     planning module
     """
     def __init__(self):
-        self.mode = 1
+        self.mode = 2
         """
-        control_mode = 0 动态窗口
-        control_mode = 1 五次曲线拟合
+        planning_mode = 1 五次曲线拟合
+        planning_mode = 2 rrt
         """

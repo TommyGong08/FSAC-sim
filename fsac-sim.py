@@ -15,6 +15,7 @@ from perception import perceptor
 from plan import planner
 from plan import dynamic_windows_planner
 from plan import quintic_polynomials_planner
+from plan import rrt_planner
 show_animation = True
 
 config = config.Config()
@@ -55,6 +56,17 @@ def main(gx=10.0, gy=10.0):
 
     ob_r = config.ob_r
     ob_b = config.ob_b
+
+    if planning_module.mode == 2:
+        obstacle_list = np.vstack((ob_r, ob_b))
+        print(obstacle_list)
+        # Set Initial parameters
+        rrt = rrt_planner.RRT(
+            rand_area=[-2, 15],
+            obstacle_list=obstacle_list,
+            # play_area=[0, 10, 0, 14]
+        )
+
     while True:
         # perception
         """
@@ -68,11 +80,6 @@ def main(gx=10.0, gy=10.0):
         output: the middle line or the best suitable trajectory 
         """
         mid_trajectory = dynamic_windows_planner.cal_mid_points(detected_red_cones, detected_blue_cones)
-        # print("detected red : ", len(detected_red_cones))
-        # print("detected blue : ", len(detected_blue_cones))
-        # print(len(mid_trajectory))
-
-        # control
         """
         input:mid or best trajectory
         output: [x, y, yaw, v, yaw_rate]
@@ -80,13 +87,8 @@ def main(gx=10.0, gy=10.0):
         # goal, goal_yaw = planner.cal_farthest_goal(x, mid_trajectory)
         goal, goal_yaw = planner.cal_nearest_goal(x, mid_trajectory)
 
-        if planning_module.mode == 0:   # 动态窗口法
-            ob = np.vstack((detected_red_cones, detected_blue_cones))
-            best_w, predicted_trajectory = dynamic_windows_planner.dwa_control(x, config, goal, ob)  # 计算动态窗口
-            x = dynamic_windows_planner.motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
-            # trajectory = np.vstack((trajectory, x))  # store state history
-
-        elif planning_module.mode == 1:
+        if planning_module.mode == 1:
+            # 五次多项式曲线拟合
             # 计算出时间、空间、速度、加速度和加加速度的信息
             # 最大加速度与加加速度
             max_accel = 0.5  # max accel [m/ss]
@@ -98,14 +100,27 @@ def main(gx=10.0, gy=10.0):
             goal_v = 1.0  # [m/s]
             x, j, predicted_trajectory = quintic_polynomials_planner.quintic_polynomials_planner(
                 x[0], x[1], x[2], x[3], sa, goal[0], goal[1], goal_yaw, goal_v, ga, max_accel, max_jerk, dt)
+
+        elif planning_module.mode == 2:  # rrt
+            start = [x[0], x[1]]
+            path = rrt.planning(start, goal, animation=False)
+
+        # control
+        # 动态窗口法
+        ob = np.vstack((detected_red_cones, detected_blue_cones))
+        best_w, predicted_trajectory = dynamic_windows_planner.dwa_control(x, config, goal, ob)  # 计算动态窗口
+        x = dynamic_windows_planner.motion(x, best_w, config.dt)  # simulate robot; x为下一时刻的车辆状态
+        # trajectory = np.vstack((trajectory, x))  # store state history
+
         # plot
         plt.cla()
-        plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-r")
         plt.plot(ob_r[:, 0], ob_r[:, 1], "or")
         plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
         plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "-g")
         plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "-g")
         plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], ".")
+        plt.plot([x for (x, y) in path], [y for (x, y) in path], '-y')  # rrt
+        plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-r")
         plot_robot(x[0], x[1], x[2], config)  # draw race car
         plt.axis("equal")
         plt.grid(True)
