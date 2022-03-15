@@ -46,14 +46,9 @@ def plot_robot(x, y, yaw, config):  # pragma: no cover
              np.array(outline[1, :]).flatten(), "-k")
 
 
-def main(gx=10.0, gy=10.0):
-    print(__file__ + " start!!!")
+def main():
     # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
     x = np.array([18.0, 0.0, 0, 0.0, 0.0])
-    # goal position [x(m), y(m)]
-    # goal = np.array([gx, gy])
-
-    # input [forward speed, yaw_rate]
 
     ob_r = config.ob_r
     ob_b = config.ob_b
@@ -104,7 +99,7 @@ def main(gx=10.0, gy=10.0):
 
         elif planning_module.mode == 2:  # rrt
             start = [x[0], x[1]]
-            path = rrt.planning(start, goal, animation=False)
+            rrt_path = rrt.planning(start, goal, animation=False)
 
         elif planning_module.mode == 3:  # cubic_spline
             cubic_x = mid_trajectory[1:, 0]
@@ -129,8 +124,8 @@ def main(gx=10.0, gy=10.0):
         plt.plot(ob_b[:, 0], ob_b[:, 1], "ob")
         plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "-g")
         plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "-g")
-#        plt.plot([x for (x, y) in path], [y for (x, y) in path], '-y')  # rrt
-        # plt.plot(cubic_spline_path[:, 0], cubic_spline_path[:, 1], "-")  # cubic_spline
+        # plt.plot([x for (x, y) in rrt_path], [y for (x, y) in rrt_path], '-y')  # rrt
+        plt.plot(cubic_spline_path[:, 0], cubic_spline_path[:, 1], "-")  # cubic_spline
         plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], ".")
         plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-r")
         plot_robot(x[0], x[1], x[2], config)  # draw race car
