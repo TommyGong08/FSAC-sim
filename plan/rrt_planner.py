@@ -41,9 +41,9 @@ class RRT:
     def __init__(self,
                  obstacle_list,
                  rand_area,
-                 expand_dis=3.0,
+                 expand_dis=1.0,
                  path_resolution=0.1,
-                 goal_sample_rate=5,
+                 goal_sample_rate=20,
                  max_iter=500,
                  play_area=None
                  ):
@@ -59,6 +59,7 @@ class RRT:
         """
         # self.start = self.Node(start[0], start[1])
         # self.end = self.Node(goal[0], goal[1])
+        # 采样区域
         self.min_rand = rand_area[0]
         self.max_rand = rand_area[1]
         if play_area is not None:
@@ -83,7 +84,7 @@ class RRT:
         end = self.Node(end[0], end[1])
         self.node_list = [start]
         for i in range(self.max_iter):
-            rnd_node = self.get_random_node(end)
+            rnd_node = self.get_random_node(start, end)
             # 找node_list 中的节点距离rnd_node最近的点
             nearest_ind = self.get_nearest_node_index(self.node_list, rnd_node)
             nearest_node = self.node_list[nearest_ind]
@@ -95,7 +96,7 @@ class RRT:
                 self.node_list.append(new_node)
 
             if animation and i % 5 == 0:
-                self.draw_graph(rnd_node)
+                self.draw_graph(rnd_node, start, end)
 
             if self.calc_dist_to_goal(self.node_list[-1].x,
                                       self.node_list[-1].y, end) <= self.expand_dis:
@@ -105,7 +106,7 @@ class RRT:
                     return self.generate_final_course(len(self.node_list) - 1, end)
 
             if animation and i % 5:
-                self.draw_graph(rnd_node)
+                self.draw_graph(rnd_node, start, end)
 
         return None  # cannot find path
 
@@ -157,15 +158,45 @@ class RRT:
         dy = y - end.y
         return math.hypot(dx, dy)
 
-    def get_random_node(self, end):
+    def get_random_node(self, start, end):
         if random.randint(0, 100) > self.goal_sample_rate:
             rnd = self.Node(
-                random.uniform(self.min_rand, self.max_rand),
-                random.uniform(self.min_rand, self.max_rand))
+                random.uniform(start.x + self.min_rand, start.x + self.max_rand),
+                random.uniform(start.y + self.min_rand, start.y + self.max_rand))
         else:  # goal point sampling with a probability of 5%
             rnd = self.Node(end.x, end.y)
         return rnd
 
+    def draw_graph(self, rnd=None, start=None, end=None):
+        plt.clf()
+        # for stopping simulation with the esc key.
+        plt.gcf().canvas.mpl_connect(
+            'key_release_event',
+            lambda event: [exit(0) if event.key == 'escape' else None])
+        if rnd is not None:
+            plt.plot(rnd.x, rnd.y, "^k")
+        for node in self.node_list:
+            if node.parent:
+                plt.plot(node.path_x, node.path_y, "-g")
+
+        for obstacle in self.obstacle_list:
+            self.plot_circle(obstacle[0], obstacle[1], 0.01)
+
+        if self.play_area is not None:
+            plt.plot([self.play_area.xmin, self.play_area.xmax,
+                      self.play_area.xmax, self.play_area.xmin,
+                      self.play_area.xmin],
+                     [self.play_area.ymin, self.play_area.ymin,
+                      self.play_area.ymax, self.play_area.ymax,
+                      self.play_area.ymin],
+                     "-k")
+
+        plt.plot(start.x, start.y, "xr")
+        plt.plot(end.x, end.y, "xr")
+        plt.axis("equal")
+        # plt.axis([-2, 15, -2, 15])
+        plt.grid(True)
+        plt.pause(0.001)
 
     @staticmethod
     def plot_circle(x, y, size, color="-b"):  # pragma: no cover
