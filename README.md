@@ -30,8 +30,8 @@ python fsac-sim.py
 -[ ] B Spline  
 
 2. control  
--[] pure pursuit  
--[] mpc  
+-[ ] pure pursuit  
+-[ ] mpc  
 
 
 
