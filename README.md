@@ -22,6 +22,9 @@ I simplify the perception pipeline, making sure that cones within 15m in front o
 python fsac-sim.py
 ```
 
+## Demo
+![1](img/demo1.gif)
+
 ## TODO  
 1.planner  
 - [ ] implement cubic spline in base_link  
@@ -32,3 +35,5 @@ python fsac-sim.py
 2.control  
 - [ ] pure pursuit  
 - [ ] mpc  
+
+

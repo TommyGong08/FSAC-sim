@@ -130,7 +130,7 @@ def main(gx=10.0, gy=10.0):
         plt.plot(detected_red_cones[:, 0], detected_red_cones[:, 1], "-g")
         plt.plot(detected_blue_cones[:, 0], detected_blue_cones[:, 1], "-g")
 #        plt.plot([x for (x, y) in path], [y for (x, y) in path], '-y')  # rrt
-        plt.plot(cubic_spline_path[:, 0], cubic_spline_path[:, 1], "-r")  # cubic_spline
+        # plt.plot(cubic_spline_path[:, 0], cubic_spline_path[:, 1], "-")  # cubic_spline
         plt.plot(mid_trajectory[:, 0], mid_trajectory[:, 1], ".")
         plt.plot(predicted_trajectory[:, 0], predicted_trajectory[:, 1], "-r")
         plot_robot(x[0], x[1], x[2], config)  # draw race car
