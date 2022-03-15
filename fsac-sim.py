@@ -62,7 +62,7 @@ def main(gx=10.0, gy=10.0):
         print(obstacle_list)
         # Set Initial parameters
         rrt = rrt_planner.RRT(
-            rand_area=[-2, 15],
+            rand_area=[-10, 10],
             obstacle_list=obstacle_list,
             # play_area=[0, 10, 0, 14]
         )
@@ -84,8 +84,8 @@ def main(gx=10.0, gy=10.0):
         input:mid or best trajectory
         output: [x, y, yaw, v, yaw_rate]
         """
-        # goal, goal_yaw = planner.cal_farthest_goal(x, mid_trajectory)
-        goal, goal_yaw = planner.cal_nearest_goal(x, mid_trajectory)
+        goal, goal_yaw = planner.cal_farthest_goal(x, mid_trajectory)
+        # goal, goal_yaw = planner.cal_nearest_goal(x, mid_trajectory)
 
         if planning_module.mode == 1:
             # 五次多项式曲线拟合
