@@ -47,8 +47,9 @@ class Plan:
     planning module
     """
     def __init__(self):
-        self.mode = 2
+        self.mode = 3
         """
         planning_mode = 1 五次曲线拟合
         planning_mode = 2 rrt
+        planning_mode = 3 cubic_spline
         """
